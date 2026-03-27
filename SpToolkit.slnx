@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SpToolkit.Abstractions/SpToolkit.Abstractions.csproj" />
+    <Project Path="src/SpToolkit.Generator/SpToolkit.Generator.csproj" />
+    <Project Path="src/SpToolkit.Generator.Cli/SpToolkit.Generator.Cli.csproj" />
+    <Project Path="src/SpToolkit.Runtime/SpToolkit.Runtime.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/SpToolkit.Samples/SpToolkit.Samples.csproj" />
+  </Folder>
+</Solution>

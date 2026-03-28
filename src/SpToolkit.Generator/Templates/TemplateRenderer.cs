@@ -27,8 +27,6 @@ public sealed class TemplateRenderer
             sb.Append($"    public {p.ClrTypeName} {p.PropertyName} {{ get; set; }}");
             if (p.DefaultValueExpression is not null)
                 sb.Append($" = {p.DefaultValueExpression};");
-            //else
-            //    sb.Append(';');
             sb.AppendLine();
             sb.AppendLine();
         }
@@ -60,8 +58,6 @@ public sealed class TemplateRenderer
             sb.Append($"    public {p.ClrTypeName} {p.PropertyName} {{ get; set; }}");
             if (p.DefaultValueExpression is not null)
                 sb.Append($" = {p.DefaultValueExpression};");
-            //else
-            //    sb.Append(';');
             sb.AppendLine();
             sb.AppendLine();
         }
@@ -91,8 +87,6 @@ public sealed class TemplateRenderer
             sb.Append($"    public {col.ClrTypeName} {col.PropertyName} {{ get; set; }}");
             if (col.DefaultValueExpression is not null)
                 sb.Append($" = {col.DefaultValueExpression};");
-            //else
-            //    sb.Append(';');
             sb.AppendLine();
             sb.AppendLine();
         }

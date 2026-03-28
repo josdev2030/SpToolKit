@@ -290,6 +290,67 @@ public sealed class StoredProcedureExecutor : IStoredProcedureExecutor
         };
     }
 
+    /// <inheritdoc />
+    public async Task<SpResult<TResult?, TOutput>> QuerySingleWithOutputsAsync<TInput, TResult, TOutput>(
+        string procedureName,
+        TInput input,
+        CancellationToken cancellationToken = default)
+        where TInput : class
+        where TResult : class, new()
+        where TOutput : class, new()
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(procedureName);
+        ArgumentNullException.ThrowIfNull(input);
+
+        var sw = StartTiming(procedureName);
+
+        await using var lease = await _connectionProvider.AcquireAsync(cancellationToken);
+        await using var command = lease.Connection.CreateCommand();
+        command.CommandText = procedureName;
+        command.CommandType = CommandType.StoredProcedure;
+        command.Transaction = lease.Transaction;
+
+        var inputParams = _parameterBuilder.BuildInputParameters(input);
+        var outputParams = _parameterBuilder.BuildOutputParameters(typeof(TOutput));
+
+        foreach (var p in inputParams)
+            command.Parameters.Add(p);
+        foreach (var p in outputParams)
+            command.Parameters.Add(p);
+
+        DbDataReader reader;
+        try
+        {
+            reader = await command.ExecuteReaderAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogError(procedureName, sw, ex);
+            throw new SpExecutionException(
+                $"Failed to execute stored procedure '{procedureName}': {ex.Message}",
+                ex,
+                procedureName);
+        }
+
+        TResult? row;
+        await using (reader)
+        {
+            row = await _materializer.MaterializeSingleAsync<TResult>(reader, cancellationToken);
+        }
+
+        // Output parameters are only accessible after the reader is closed
+        var output = new TOutput();
+        _parameterBuilder.PopulateOutput(output, outputParams);
+
+        LogCompleted(procedureName, sw, rowCount: row is null ? 0 : 1);
+
+        return new SpResult<TResult?, TOutput>
+        {
+            Data = row,
+            Output = output
+        };
+    }
+
     // ── Logging helpers ────────────────────────────────────────────────────
 
     private Stopwatch StartTiming(string procedureName)

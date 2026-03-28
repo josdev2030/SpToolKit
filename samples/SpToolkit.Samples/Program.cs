@@ -130,6 +130,47 @@ namespace SpToolkit.Samples
                 _logger.LogWarning(ex, "Sample 3 skipped (SP not found or connection unavailable)");
             }
 
+            // ── Sample 4: QueryWithOutputsAsync (SP with result set + output params) ──
+
+            _logger.LogInformation("--- Sample 4: Get users with total count ---");
+            try
+            {
+                var result = await _sp.QueryWithOutputsAsync<GetUsersPagedRequest, UserRow, GetUsersPagedResponse>(
+                    "dbo.SP_GET_USERS_PAGED",
+                    new GetUsersPagedRequest { MaxRows = 5 });
+
+                _logger.LogInformation(
+                    "Returned {Fetched} users (total in DB: {Total})",
+                    result.Data.Count,
+                    result.Output.TotalUsers);
+
+                foreach (var u in result.Data)
+                    _logger.LogInformation("  [{Id}] {Name} <{Email}>", u.UserId, u.Name, u.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Sample 4 skipped (SP not found or connection unavailable)");
+            }
+
+            // ── Sample 5: QuerySingleWithOutputsAsync (SP with single row + output params) ──
+
+            _logger.LogInformation("--- Sample 5: Get user by ID with status output ---");
+            try
+            {
+                var result = await _sp.QuerySingleWithOutputsAsync<GetUserByIdRequest, UserRow, GetUserByIdResponse>(
+                    "dbo.SP_GET_USER_BY_ID_WITH_STATUS",
+                    new GetUserByIdRequest { UserId = 1 });
+
+                if (result.Data is not null)
+                    _logger.LogInformation("Found: [{Id}] {Name}, Status={Status}", result.Data.UserId, result.Data.Name, result.Output.Status);
+                else
+                    _logger.LogInformation("User not found, Status={Status}", result.Output.Status);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Sample 5 skipped (SP not found or connection unavailable)");
+            }
+
             _logger.LogInformation("=== Done ===");
         }
     }
@@ -186,6 +227,25 @@ namespace SpToolkit.Samples
 
         [SpResultColumn("CREATED_AT")]
         public DateTime CreatedAt { get; set; }
+    }
+
+    [SpProcedure("dbo.SP_GET_USERS_PAGED")]
+    public sealed class GetUsersPagedRequest
+    {
+        [SpInput("@MAX_ROWS", SqlDbType.Int)]
+        public int MaxRows { get; set; } = 100;
+    }
+
+    public sealed class GetUsersPagedResponse
+    {
+        [SpOutput("@TOTAL_USERS", SqlDbType.Int)]
+        public int TotalUsers { get; set; }
+    }
+
+    public sealed class GetUserByIdResponse
+    {
+        [SpOutput("@STATUS", SqlDbType.NVarChar, Size = 50)]
+        public string Status { get; set; } = string.Empty;
     }
 }
 
@@ -261,6 +321,49 @@ namespace SpToolkit.Samples
             CREATED_AT 
         FROM Users 
         WHERE USER_ID = @USER_ID;
+    END;
+    GO
+
+    -- SP_GET_USERS_PAGED: returns a result set AND output parameters simultaneously
+    CREATE OR ALTER PROCEDURE dbo.SP_GET_USERS_PAGED
+        @MAX_ROWS     INT = 100,
+        @TOTAL_USERS  INT OUTPUT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+
+        SELECT @TOTAL_USERS = COUNT(*) FROM Users;
+
+        SELECT TOP (@MAX_ROWS)
+            USER_ID,
+            NAME,
+            EMAIL,
+            CREATED_AT
+        FROM Users
+        ORDER BY USER_ID;
+    END;
+    GO
+
+    -- SP_GET_USER_BY_ID_WITH_STATUS: returns 0 or 1 row AND an output parameter simultaneously
+    CREATE OR ALTER PROCEDURE dbo.SP_GET_USER_BY_ID_WITH_STATUS
+        @USER_ID  INT,
+        @STATUS   NVARCHAR(50) OUTPUT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+
+        SELECT
+            USER_ID,
+            NAME,
+            EMAIL,
+            CREATED_AT
+        FROM Users
+        WHERE USER_ID = @USER_ID;
+
+        IF @@ROWCOUNT = 0
+            SET @STATUS = 'NOT_FOUND';
+        ELSE
+            SET @STATUS = 'OK';
     END;
     GO
  */

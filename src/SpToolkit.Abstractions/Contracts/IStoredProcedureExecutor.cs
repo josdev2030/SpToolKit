@@ -49,4 +49,15 @@ public interface IStoredProcedureExecutor
         where TInput : class
         where TResult : class, new()
         where TOutput : class, new();
+
+    /// <summary>
+    /// Executes a stored procedure that returns the first row (or null) and output parameters.
+    /// </summary>
+    Task<SpResult<TResult?, TOutput>> QuerySingleWithOutputsAsync<TInput, TResult, TOutput>(
+        string procedureName,
+        TInput input,
+        CancellationToken cancellationToken = default)
+        where TInput : class
+        where TResult : class, new()
+        where TOutput : class, new();
 }

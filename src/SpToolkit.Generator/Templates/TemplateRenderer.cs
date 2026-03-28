@@ -153,6 +153,11 @@ public sealed class TemplateRenderer
                 executorCall = $"_executor.QueryWithOutputsAsync<{proc.RequestClassName}, {proc.RowClassName}, {proc.ResponseClassName}>";
                 break;
 
+            case ExecutionPattern.QuerySingleWithOutputs:
+                returnType   = $"Task<SpResult<{proc.RowClassName}?, {proc.ResponseClassName}>>";
+                executorCall = $"_executor.QuerySingleWithOutputsAsync<{proc.RequestClassName}, {proc.RowClassName}, {proc.ResponseClassName}>";
+                break;
+
             default:
                 return;
         }

@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "SemVer version (no leading v), e.g. 0.2.0"
+        required: true
+        type: string
+      publish_nuget:
+        description: "Push packages to nuget.org (requires NUGET_API_KEY secret)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ inputs.version }}"
+          else
+            V="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=${V}" >> "$GITHUB_OUTPUT"
+          echo "Packaging version: ${V}"
+
+      - name: Restore
+        run: dotnet restore SpToolkit.slnx
+
+      - name: Build
+        run: dotnet build SpToolkit.slnx -c Release --no-restore -p:Version=${{ steps.ver.outputs.version }} -p:ContinuousIntegrationBuild=true
+
+      - name: Test
+        run: dotnet test SpToolkit.slnx -c Release --no-build --verbosity normal
+
+      - name: Pack
+        run: |
+          dotnet pack src/SpToolkit.Abstractions/SpToolkit.Abstractions.csproj -c Release --no-build -p:Version=${{ steps.ver.outputs.version }} -o "${{ github.workspace }}/artifacts"
+          dotnet pack src/SpToolkit.Runtime/SpToolkit.Runtime.csproj -c Release --no-build -p:Version=${{ steps.ver.outputs.version }} -o "${{ github.workspace }}/artifacts"
+          dotnet pack src/SpToolkit.Generator.Cli/SpToolkit.Generator.Cli.csproj -c Release --no-build -p:Version=${{ steps.ver.outputs.version }} -o "${{ github.workspace }}/artifacts"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/*.*
+
+      - name: Publish to NuGet (manual dispatch)
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_nuget == true
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "${{ github.workspace }}/artifacts"/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          shopt -s nullglob
+          for f in "${{ github.workspace }}/artifacts"/*.snupkg; do
+            dotnet nuget push "$f" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+
+      - name: Publish to NuGet (tag push, if secret configured)
+        if: github.event_name == 'push'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "${NUGET_API_KEY}" ]; then
+            echo "NUGET_API_KEY not set; skipping NuGet push. Download packages from the workflow artifacts or push manually."
+            exit 0
+          fi
+          dotnet nuget push "${{ github.workspace }}/artifacts"/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          shopt -s nullglob
+          for f in "${{ github.workspace }}/artifacts"/*.snupkg; do
+            dotnet nuget push "$f" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done

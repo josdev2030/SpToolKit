@@ -1,0 +1,65 @@
+<Project>
+  <PropertyGroup>
+    <!-- SemVer: override in CI/release with -p:Version=… (e.g. tag v1.2.3 → 1.2.3) -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
+
+    <!-- From LICENSE; override locally if needed: dotnet pack -p:Authors="…" -->
+    <Authors>Josue Navarro</Authors>
+
+    <RepositoryUrl>https://github.com/Kiritro2030/SpToolKit.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/Kiritro2030/SpToolKit</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>See $(PackageProjectUrl)/blob/main/CHANGELOG.md</PackageReleaseNotes>
+
+    <NeutralLanguage>en</NeutralLanguage>
+    <IsPackable>false</IsPackable>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Publishable: Abstractions, Runtime, Generator.Cli (.NET tool). Generator engine stays non-packable. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SpToolkit.Abstractions' Or '$(MSBuildProjectName)' == 'SpToolkit.Runtime' Or '$(MSBuildProjectName)' == 'SpToolkit.Generator.Cli'">
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SpToolkit.Abstractions'">
+    <PackageId>SpToolkit.Abstractions</PackageId>
+    <Title>SpToolKit abstractions</Title>
+    <Description>Contracts, models, and options for SpToolKit: strongly-typed SQL Server stored procedure wrappers.</Description>
+    <PackageTags>sqlserver;stored-procedures;dotnet;sproc;sp-toolkit</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SpToolkit.Runtime'">
+    <PackageId>SpToolkit.Runtime</PackageId>
+    <Title>SpToolKit runtime</Title>
+    <Description>Runtime execution and dependency-injection registration for SpToolKit. Depends on Microsoft.Data.SqlClient, EF Core relational packages (for optional DbContext integration), and Microsoft.Extensions.*. Consumers inherit those dependency versions transitively.</Description>
+    <PackageTags>sqlserver;stored-procedures;dotnet;efcore;sqlclient;sp-toolkit</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SpToolkit.Generator.Cli'">
+    <PackageId>SpToolkit.Generator.Cli</PackageId>
+    <Title>SpToolKit generator CLI</Title>
+    <Description>.NET global tool (command sp-generate) that generates C# stored procedure wrapper code from SQL Server metadata using JSON configuration.</Description>
+    <PackageTags>sqlserver;stored-procedures;code-generation;dotnet-tool;sp-toolkit</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

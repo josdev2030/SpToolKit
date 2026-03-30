@@ -4,9 +4,11 @@ This document describes versioning, Git branching, CI/CD, NuGet, and GitHub Rele
 
 ## Semantic versioning
 
-- Packages follow **SemVer** release versions in `MAJOR.MINOR.PATCH` format (stable releases only for the current automation).
+- Packages follow **SemVer 2** versions: stable `MAJOR.MINOR.PATCH` or prerelease `MAJOR.MINOR.PATCH-<label>` (for example `0.1.0-preview.1`).
 - The default version in [Directory.Build.props](../Directory.Build.props) should be updated when you cut a release (or rely on CI to pass `-p:Version=…` from the Git tag).
-- **Git tags** for releases should use a leading `v` and match the package version without it, for example tag `v1.2.3` → package version `1.2.3`.
+- **Git tags** for releases use a leading `v` and match the package version without it: tag `v1.2.3` → package `1.2.3`; tag `v0.1.0-preview.1` → package `0.1.0-preview.1`.
+- **Build metadata** (`+…` after the version) is not supported by the release workflow; omit it for tags and manual runs.
+- On NuGet, prerelease packages sort below stable versions for the same `MAJOR.MINOR.PATCH`; consumers must opt in to prerelease (for example `--prerelease` with the CLI).
 
 ## Branch and pull request policy
 
@@ -22,7 +24,7 @@ Enforcement (required reviewers, required status checks) is configured in **GitH
 
 - `Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion` (defaults aligned for `0.1.0`).
 
-Packable projects inherit these values unless overridden. Release automation passes `-p:Version=…` so the **tag** drives the shipped package version. `AssemblyVersion` and `FileVersion` are computed from `$(VersionPrefix)` (defaulting to `$(VersionPrefix).0` when not explicitly set), keeping assembly/file metadata aligned with the release version policy.
+Packable projects inherit these values unless overridden. Release automation passes `-p:Version=…` so the **tag** drives the shipped package version. `AssemblyVersion` and `FileVersion` use the numeric core of `Version` (the part before `-`), with a `.0` revision—prerelease labels apply to the NuGet package version and informational metadata, not to a four-part assembly version string.
 
 ## Packable packages
 
@@ -57,9 +59,8 @@ Adjust `--version` to match the package version you packed.
 
 - **CI** (`.github/workflows/ci.yml`): on push/PR to `main`, runs `dotnet restore`, `dotnet build -c Release`, and `dotnet test` on `SpToolkit.slnx`.
 - **Release** (`.github/workflows/release.yml`):
-  - Runs when a tag matching `v*.*.*` is pushed, or when **Run workflow** is used (workflow dispatch).
-  - Validates release versions strictly as `vX.Y.Z` (tag push) or `X.Y.Z` (workflow dispatch), with no leading zeros.
-  - Pre-release tags/versions (for example `-preview.1`) are intentionally not accepted by this workflow.
+  - Runs when a tag matching `v*.*.*` or `v*.*.*-*` is pushed, or when **Run workflow** is used (workflow dispatch).
+  - Validates versions as `vX.Y.Z` or `vX.Y.Z-<prerelease>` (tag push), and `X.Y.Z` or `X.Y.Z-<prerelease>` (workflow dispatch). No leading zeros in numeric parts; prerelease labels follow SemVer 2 (dot-separated identifiers). Build metadata (`+…`) is rejected.
   - Builds and tests in Release, packs the three packages, uploads **artifacts** (`.nupkg` and `.snupkg`).
   - **NuGet push**: configure the repository secret `NUGET_API_KEY`. On **tag** builds, if the secret is set, packages are pushed to nuget.org automatically; if unset, the job still succeeds and you push manually. For **workflow dispatch**, check **publish_nuget** to push (secret required).
 
@@ -71,7 +72,7 @@ Creating a **GitHub Release** is not fully automated in this repository. Recomme
 
 1. Ensure [CHANGELOG.md](../CHANGELOG.md) reflects the version (move items from `[Unreleased]` if needed).
 2. Commit any version bumps in `Directory.Build.props` if you want the default in-repo version to match (optional when tags drive CI).
-3. Create and push an annotated tag: `git tag -a v1.0.0 -m "v1.0.0"` then `git push origin v1.0.0`.
+3. Create and push an annotated tag (stable or prerelease), for example `git tag -a v1.0.0 -m "v1.0.0"` then `git push origin v1.0.0`, or `git tag -a v0.1.0-preview.1 -m "v0.1.0-preview.1"` then `git push origin v0.1.0-preview.1`.
 4. Wait for the **Release** workflow; download artifacts or confirm NuGet push.
 5. On GitHub: **Releases → Draft a new release**, choose the tag, title `v1.0.0`, paste the changelog section for that version as the description, publish.
 

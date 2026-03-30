@@ -4,10 +4,11 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "v*.*.*-*"
   workflow_dispatch:
     inputs:
       version:
-        description: "SemVer version (no leading v), e.g. 0.2.0"
+        description: "SemVer version (no leading v), e.g. 0.2.0 or 0.1.0-preview.1"
         required: true
         type: string
       publish_nuget:
@@ -38,18 +39,28 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             V="${{ inputs.version }}"
-            REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+            if [[ "$V" == *"+"* ]]; then
+              echo "Invalid manual version: $V"
+              echo "Build metadata (+...) is not supported for releases."
+              exit 1
+            fi
+            REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
             if [[ ! "$V" =~ $REGEX ]]; then
               echo "Invalid manual version: $V"
-              echo "Expected SemVer core format: X.Y.Z (no leading v, no leading zeros)."
+              echo "Expected: X.Y.Z or X.Y.Z-<prerelease> (no leading v, no leading zeros; SemVer 2 prerelease labels only)."
               exit 1
             fi
           else
             TAG="${GITHUB_REF_NAME}"
-            REGEX='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+            if [[ "$TAG" == *"+"* ]]; then
+              echo "Invalid release tag: $TAG"
+              echo "Build metadata (+...) is not supported for releases."
+              exit 1
+            fi
+            REGEX='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
             if [[ ! "$TAG" =~ $REGEX ]]; then
               echo "Invalid release tag: $TAG"
-              echo "Expected tag format: vX.Y.Z (no leading zeros)."
+              echo "Expected: vX.Y.Z or vX.Y.Z-<prerelease> (no leading zeros; SemVer 2 prerelease labels only)."
               exit 1
             fi
             V="${TAG#v}"

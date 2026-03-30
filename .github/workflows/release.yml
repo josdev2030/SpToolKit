@@ -72,7 +72,7 @@ jobs:
           dotnet pack src/SpToolkit.Runtime/SpToolkit.Runtime.csproj -c Release --no-build -p:Version=${{ steps.ver.outputs.version }} -o "${{ github.workspace }}/artifacts"
           dotnet pack src/SpToolkit.Generator.Cli/SpToolkit.Generator.Cli.csproj -c Release --no-build -p:Version=${{ steps.ver.outputs.version }} -o "${{ github.workspace }}/artifacts"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: artifacts/*.*

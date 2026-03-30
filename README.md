@@ -91,13 +91,5 @@ A commented template with all supported options is in the repository:
 
 Copy it to `sptoolkit.json` (or another path and pass `--config` / `-c`), then fill in values for your environment.
 
-## Breaking changes
-
-If you implement `IStoredProcedureExecutor` yourself, recent versions require implementing:
-
-- `ExecuteAsync<TInput>(string procedureName, TInput input, CancellationToken cancellationToken = default) where TInput : class`
-
-Generated wrappers and the built-in `StoredProcedureExecutor` depend on this member for procedures without result sets or output parameters.
-
 ## License
 See [LICENSE](LICENSE).

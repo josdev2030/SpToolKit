@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- SemVer: override in CI/release with -p:Version=… (e.g. tag v1.2.3 → 1.2.3) -->
-    <Version>0.1.0</Version>
+    <Version>0.1.0-preview.2</Version>
     <!-- Some CI invocations set Version without populating VersionPrefix; derive a stable numeric core. -->
     <_VersionCore Condition="'$(VersionPrefix)' != ''">$(VersionPrefix)</_VersionCore>
     <_VersionCore Condition="'$(_VersionCore)' == ''">$([System.String]::Copy('$(Version)').Split('-')[0])</_VersionCore>
@@ -9,8 +9,8 @@
     <FileVersion Condition="'$(FileVersion)' == ''">$(_VersionCore).0</FileVersion>
     <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
 
-    <!-- From LICENSE; override locally if needed: dotnet pack -p:Authors="…" -->
-    <Authors>Josue Navarro</Authors>
+    <!-- NuGet gallery author; override: dotnet pack -p:Authors="…" -->
+    <Authors>josuenavarro</Authors>
 
     <RepositoryUrl>https://github.com/Kiritro2030/SpToolKit.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

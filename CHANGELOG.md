@@ -8,17 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- NuGet packaging metadata, symbols, and publish workflow (in progress).
-
 ### Changed
-
-- README, samples, and configuration examples as the project moves toward a stable public install story.
 
 ### Breaking
 
-- None planned; any incompatible change will be listed here before the next tagged release.
+## [0.1.0-preview.2] - 2026-03-30
 
-## [0.1.0] - 2026-03-29
+First public **prerelease** on [nuget.org](https://www.nuget.org/profiles/josuenavarro) for all packable packages at this version.
 
 ### Added
 
@@ -26,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Runtime package with `IStoredProcedureExecutor` and ADO.NET / optional EF Core–integrated execution.
 - JSON configuration for connection string, output paths, namespaces, naming overrides, and generator options.
 - Dependency injection extensions (`AddSpToolkit`, `AddSpToolkit<TDbContext>`) registering `IStoredProcedureExecutor`.
+- NuGet packages: `SpToolkit.Abstractions`, `SpToolkit.Runtime`, `SpToolkit.Generator.Cli` (.NET global tool, command `sp-generate`).
+- Repository packaging: centralized versioning in `Directory.Build.props`, SourceLink/snupkg for packable projects, GitHub Actions (CI + release), Dependabot, and publishing documentation.
 
 ### Breaking
 

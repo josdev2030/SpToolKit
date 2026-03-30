@@ -22,7 +22,7 @@ Enforcement (required reviewers, required status checks) is configured in **GitH
 
 [Directory.Build.props](../Directory.Build.props) at the repository root sets:
 
-- `Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion` (defaults aligned for `0.1.0`).
+- `Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion` (defaults match the current shipped prerelease in repo, e.g. `0.1.0-preview.2`; bump when you cut the next release).
 
 Packable projects inherit these values unless overridden. Release automation passes `-p:Version=…` so the **tag** drives the shipped package version. `AssemblyVersion` and `FileVersion` use the numeric core of `Version` (the part before `-`), with a `.0` revision—prerelease labels apply to the NuGet package version and informational metadata, not to a four-part assembly version string.
 
@@ -48,10 +48,14 @@ dotnet pack SpToolkit.slnx -c Release -o ./artifacts --no-build
 Install the tool from a local folder (example paths for your clone):
 
 ```bash
-dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0 --add-source ./artifacts
+dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0-preview.2 --add-source ./artifacts
 sp-generate --help
 dotnet tool uninstall --global SpToolkit.Generator.Cli
 ```
+
+From **nuget.org**, an explicit prerelease `--version` is enough:  
+`dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0-preview.2`  
+Use `--prerelease` only when you omit `--version` and want the latest prerelease.
 
 Adjust `--version` to match the package version you packed.
 
@@ -66,15 +70,21 @@ Adjust `--version` to match the package version you packed.
 
 Do not commit API keys. Use **GitHub → Settings → Secrets and variables → Actions**.
 
+## Release checklist (public signal)
+
+Use this for every prerelease or stable drop so Git, CI, NuGet, and docs stay aligned:
+
+1. **[CHANGELOG.md](../CHANGELOG.md):** move notes from `[Unreleased]` into a dated section for the exact version you will publish (e.g. `0.1.0-preview.2`).
+2. **`Directory.Build.props`:** set `Version` to that value on `main` (unless release CI is the only source of truth and you accept drift until the tag lands).
+3. **Push to `main`** and wait for the **CI** workflow to finish green.
+4. **Tag:** `git tag -a v0.1.0-preview.2 -m "v0.1.0-preview.2"` then `git push origin v0.1.0-preview.2` (stable example: `v0.1.0`). Tag patterns accepted by the release workflow are under `on.push.tags` in `release.yml`.
+5. **Release workflow:** confirm artifacts (and NuGet push if `NUGET_API_KEY` / dispatch options apply).
+6. **GitHub Release:** **Releases → Draft a new release**, select the tag, title it like `v0.1.0-preview.2`, paste the corresponding **CHANGELOG** section as the description, publish.
+7. **Stable `0.1.0`:** when ready, publish packages **without** a prerelease label, tag **`v0.1.0`**, update README/CHANGELOG, and repeat the GitHub Release step. Pin **`--version 0.1.0`** for packages and the tool.
+
 ## GitHub Releases
 
-Creating a **GitHub Release** is not fully automated in this repository. Recommended manual flow:
-
-1. Ensure [CHANGELOG.md](../CHANGELOG.md) reflects the version (move items from `[Unreleased]` if needed).
-2. Commit any version bumps in `Directory.Build.props` if you want the default in-repo version to match (optional when tags drive CI).
-3. Create and push an annotated tag (stable or prerelease), for example `git tag -a v1.0.0 -m "v1.0.0"` then `git push origin v1.0.0`, or `git tag -a v0.1.0-preview.1 -m "v0.1.0-preview.1"` then `git push origin v0.1.0-preview.1`.
-4. Wait for the **Release** workflow; download artifacts or confirm NuGet push.
-5. On GitHub: **Releases → Draft a new release**, choose the tag, title `v1.0.0`, paste the changelog section for that version as the description, publish.
+Creating the **release notes UI** on GitHub is not generated automatically from this repo. Follow the **Release checklist** above; in short: commit changelog + version, green CI, tag, workflow artifacts, then a manual GitHub Release with notes copied from [CHANGELOG.md](../CHANGELOG.md).
 
 ## First publish to nuget.org
 
@@ -111,4 +121,4 @@ Packable projects reference **Microsoft.SourceLink.GitHub** and emit **`.snupkg`
 
 ## Authors metadata
 
-`Authors` in `Directory.Build.props` is set to match the root **LICENSE** copyright holder. Override when packing if needed: `dotnet pack -p:Authors="Your Name"`.
+`Authors` in `Directory.Build.props` is set to **`josuenavarro`** to match the NuGet profile. It may differ from the name in **LICENSE**; override when packing if needed: `dotnet pack -p:Authors="Display Name"`.

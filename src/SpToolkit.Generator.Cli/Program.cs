@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SpToolkit.Generator.Cli;
 using SpToolkit.Generator.Configuration;
 using SpToolkit.Generator.Orchestration;
@@ -72,8 +73,21 @@ rootCommand.SetAction(async (ParseResult parseResult, CancellationToken ct) =>
     var exclude    = parseResult.GetValue(excludeOption);
     var wrapper    = parseResult.GetValue(wrapperOption);
     var dryRun     = parseResult.GetValue(dryRunOption);
+    var schemasFromCli = parseResult.GetResult(schemasOption) is not null;
+    var excludeFromCli = parseResult.GetResult(excludeOption) is not null;
 
-    return await RunAsync(configPath, connection, output, ns, schemas, exclude, wrapper, dryRun, ct);
+    return await RunAsync(
+        configPath,
+        connection,
+        output,
+        ns,
+        schemas,
+        exclude,
+        wrapper,
+        dryRun,
+        schemasFromCli,
+        excludeFromCli,
+        ct);
 });
 
 return await rootCommand.Parse(args).InvokeAsync();
@@ -89,6 +103,8 @@ static async Task<int> RunAsync(
     string[]? cliExclude,
     string? cliWrapper,
     bool dryRun,
+    bool schemasFromCli,
+    bool excludeFromCli,
     CancellationToken ct)
 {
     PrintBanner();
@@ -103,7 +119,13 @@ static async Task<int> RunAsync(
         await using var stream = configFile.OpenRead();
         config = await JsonSerializer.DeserializeAsync<ConfigFile>(
             stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true,
+                Converters = { new JsonStringEnumConverter() },
+            },
             ct);
     }
     else if (configPath != "sptoolkit.json")
@@ -113,12 +135,17 @@ static async Task<int> RunAsync(
     }
 
     // 2. Merge: CLI args override config file values
+    // Array options default to [] when omitted; schemasFromCli / excludeFromCli mean the flag was passed.
     var connectionString = cliConnection ?? config?.ConnectionString;
     var outputDirectory  = cliOutput     ?? config?.OutputDirectory;
     var namespaceName    = cliNamespace  ?? config?.Namespace;
-    var schemas          = cliSchemas    ?? config?.Schemas          ?? ["dbo"];
+    var schemas          = schemasFromCli
+        ? (cliSchemas ?? [])
+        : (config?.Schemas ?? ["dbo"]);
     var prefixesToRemove = config?.PrefixesToRemove                  ?? ["SP_", "USP_"];
-    var excludeProcs     = cliExclude    ?? config?.ExcludeProcedures ?? [];
+    var excludeProcs     = excludeFromCli
+        ? (cliExclude ?? [])
+        : (config?.ExcludeProcedures ?? []);
     var wrapperClass     = cliWrapper    ?? config?.WrapperClassName ?? "AppStoredProcedures";
     var caseSensitive    = config?.CaseSensitiveColumns ?? false;
     var overrides        = config?.Overrides            ?? [];

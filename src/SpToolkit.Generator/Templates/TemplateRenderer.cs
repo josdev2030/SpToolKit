@@ -139,13 +139,31 @@ public sealed class TemplateRenderer
         switch (proc.Pattern)
         {
             case ExecutionPattern.ExecuteOnly:
-                returnType   = $"Task<{proc.ResponseClassName}>";
-                executorCall = $"_executor.ExecuteAsync<{proc.RequestClassName}, {proc.ResponseClassName}>";
+                if (proc.RequiresResponseType)
+                {
+                    if (proc.ResponseClassName is null)
+                        throw new InvalidOperationException(
+                            $"Procedure '{proc.FullName}': ExecuteOnly with outputs requires ResponseClassName.");
+
+                    returnType   = $"Task<{proc.ResponseClassName}>";
+                    executorCall = $"_executor.ExecuteAsync<{proc.RequestClassName}, {proc.ResponseClassName}>";
+                }
+                else
+                {
+                    returnType   = "Task";
+                    executorCall = $"_executor.ExecuteAsync<{proc.RequestClassName}>";
+                }
+
                 break;
 
             case ExecutionPattern.Query:
                 returnType   = $"Task<IReadOnlyList<{proc.RowClassName}>>";
                 executorCall = $"_executor.QueryAsync<{proc.RequestClassName}, {proc.RowClassName}>";
+                break;
+
+            case ExecutionPattern.QuerySingle:
+                returnType   = $"Task<{proc.RowClassName}?>";
+                executorCall = $"_executor.QuerySingleAsync<{proc.RequestClassName}, {proc.RowClassName}>";
                 break;
 
             case ExecutionPattern.QueryWithOutputs:
@@ -159,7 +177,7 @@ public sealed class TemplateRenderer
                 break;
 
             default:
-                return;
+                throw new ArgumentOutOfRangeException(nameof(proc.Pattern), proc.Pattern, "Unhandled ExecutionPattern value.");
         }
 
         string requestArg;

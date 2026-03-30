@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SpToolkit.Runtime.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SpToolkit.Abstractions\SpToolkit.Abstractions.csproj" />
   </ItemGroup>
 

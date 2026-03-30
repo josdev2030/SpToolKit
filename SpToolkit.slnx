@@ -1,11 +1,16 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/SpToolkit.Abstractions/SpToolkit.Abstractions.csproj" />
-    <Project Path="src/SpToolkit.Generator/SpToolkit.Generator.csproj" />
     <Project Path="src/SpToolkit.Generator.Cli/SpToolkit.Generator.Cli.csproj" />
+    <Project Path="src/SpToolkit.Generator/SpToolkit.Generator.csproj" />
     <Project Path="src/SpToolkit.Runtime/SpToolkit.Runtime.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/SpToolkit.Samples/SpToolkit.Samples.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="TestProject1/TestProject1.csproj" Id="42c6510d-90d6-4418-96ed-d0179ad8ee71" />
+    <Project Path="tests/SpToolkit.Generator.Tests/SpToolkit.Generator.Tests.csproj" />
+    <Project Path="tests/SpToolkit.Runtime.Tests/SpToolkit.Runtime.Tests.csproj" />
   </Folder>
 </Solution>

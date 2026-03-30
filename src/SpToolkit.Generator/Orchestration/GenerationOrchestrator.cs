@@ -177,7 +177,17 @@ public sealed class GenerationOrchestrator
             else
                 resultCols = sp.HasResultSet ? ResolveColumns(sp.ResultColumns!) : null;
 
-            var pattern = DeterminePattern(sp);
+            var effectiveHasResultSet = sp.HasResultSet || (resultCols is { Count: > 0 });
+            var defaultPattern = ExecutionPatternRules.DetermineDefaultPattern(
+                effectiveHasResultSet,
+                outputParams.Count > 0);
+            var pattern = ov?.ExecutionPattern ?? defaultPattern;
+
+            ExecutionPatternRules.ValidateExecutionPattern(
+                sp.FullName,
+                pattern,
+                effectiveHasResultSet,
+                outputParams.Count > 0);
 
             // Determine class names
             var requestClassName  = baseName + "Request";
@@ -301,17 +311,6 @@ public sealed class GenerationOrchestrator
             "TimeOnly" => "default",
             _          => null,
         };
-    }
-
-    private static ExecutionPattern DeterminePattern(StoredProcedureMetadata sp)
-    {
-        if (sp.HasResultSet && sp.HasOutputParameters)
-            return ExecutionPattern.QueryWithOutputs;
-
-        if (sp.HasResultSet)
-            return ExecutionPattern.Query;
-
-        return ExecutionPattern.ExecuteOnly;
     }
 
     /// <summary>

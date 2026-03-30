@@ -1,0 +1,124 @@
+{
+  /*
+   * ═══════════════════════════════════════════════════════════════════════════
+   * SpToolkit — generator configuration template (CLI)
+   * ═══════════════════════════════════════════════════════════════════════════
+   *
+   * Quick start
+   * -----------
+   * 1. Copy this file to "sptoolkit.json" in the directory from which you run
+   *    the generator (or pass the path with --config / -c).
+   * 2. Fill in at least: ConnectionString, Namespace, OutputDirectory
+   *    (or CLI equivalents: --connection, --namespace, --output).
+   * 3. Run the generator. --dry-run prints the resolved config without touching SQL or disk.
+   *
+   * Environment variables
+   * -----------------------
+   * JSON does not substitute ${VAR}. In CI/local workflows, typical approaches:
+   *   - pass --connection "%SQL_CS%" (cmd) or --connection $env:SQL_CS (PowerShell), or
+   *   - emit sptoolkit.json in the pipeline without committing secrets.
+   *
+   * CLI overrides (take precedence over this file)
+   * ----------------------------------------------
+   *   --connection, --output, --namespace, --schemas, --exclude, --wrapper
+   *
+   * Config file only (no equivalent CLI flags)
+   * ------------------------------------------
+   *   PrefixesToRemove, CaseSensitiveColumns, Overrides
+   *
+   * Comments: allowed in .json when the CLI uses ReadCommentHandling.Skip
+   * (this repo does). Many editors highlight .jsonc more clearly.
+   * ═══════════════════════════════════════════════════════════════════════════
+   */
+  /* Required (unless you pass --connection on every run).
+     In a deployed web app you usually do NOT ship this file: code is generated in dev/CI
+     and you deploy the already-compiled assembly. */
+  "ConnectionString": "Server=localhost;Database=MyDb;User Id=...;Password=...;TrustServerCertificate=True",
+  /* Required (unless --namespace / -n). Namespace for generated classes (.g.cs). */
+  "Namespace": "MyProject.Data.StoredProcedures",
+  /* Required (unless --output / -o). Output folder (relative to process CWD or absolute path). */
+  "OutputDirectory": "Generated/StoredProcedures",
+  /*
+   * Optional. SQL Server schemas to inspect.
+   * Code default: [ "dbo" ] if you omit this property in JSON.
+   * CLI override: --schemas schema1 schema2
+   */
+  "Schemas": [
+    "dbo"
+  ],
+  /*
+   * Optional. Prefixes stripped when deriving C# names from the SP name.
+   * Code default: [ "SP_", "USP_" ]
+   * No CLI flag; set here only.
+   */
+  "PrefixesToRemove": [
+    "SP_",
+    "USP_"
+  ],
+  /*
+   * Optional. Stored procedures to exclude (names as reported by the generator).
+   * Default: []
+   * CLI override: --exclude SP1 SP2
+   */
+  "ExcludeProcedures": [],
+  /*
+   * Optional. If true, preserves case in column names.
+   * Default: false
+   * No CLI flag.
+   */
+  "CaseSensitiveColumns": false,
+  /*
+   * Optional. Name of the generated wrapper class.
+   * Default: "AppStoredProcedures"
+   * CLI override: --wrapper / -w
+   */
+  "WrapperClassName": "AppStoredProcedures",
+  /*
+   * Optional. Per-procedure rules: the first entry in this array whose pattern matches
+   * the full SP name wins (exact match or prefix ending with *).
+   * Fields per entry:
+   *   Procedure        (required) — exact name "dbo.SP_X" or wildcard prefix "dbo.SP_INTERNAL_*"
+   *   Exclude          — if true, the SP is skipped (shows as Excluded in the report)
+   *   BaseName         — forces the base name for Request/Row/etc. types
+   *   MethodName       — forces the method name on the wrapper
+   *   ResultColumns    — manual columns when sp_describe_first_result_set fails (e.g. dynamic SQL).
+   *                      Format per item: "ColumnName:ClrType"
+   *                      Common types: int, long, string, bool, decimal, decimal?, DateTime, DateTime?, Guid, byte[]
+   *   ExecutionPattern — optional; forces the execution pattern for this SP (JSON string, PascalCase).
+   *                      The generator validates compatibility and fails with a clear error on mismatch.
+   *                      Allowed values:
+   *                        "ExecuteOnly"            — no result set; output parameters optional (neither is an edge case).
+   *                                                 With no outputs, wrapper uses Task + ExecuteAsync<TRequest> only (no response type).
+   *                        "Query"                  — result set (any row count), no output parameters
+   *                        "QuerySingle"            — result set (at most one row), no output parameters; wrapper returns Task<Row?>
+   *                        "QueryWithOutputs"       — result set + output parameters
+   *                        "QuerySingleWithOutputs" — at most one row + output parameters; Task<SpResult<Row?, Response>>
+   *                      "Effective result set" = inferred columns from SQL metadata OR manual ResultColumns on this override.
+   */
+  "Overrides": [
+    // Commented examples — uncomment and adapt:
+    // {
+    //   "Procedure": "dbo.SP_DynamicReport",
+    //   "ResultColumns": [
+    //     "UserId:int",
+    //     "DisplayName:string",
+    //     "Amount:decimal?",
+    //     "CreatedAt:DateTime?"
+    //   ]
+    // },
+    // {
+    //   "Procedure": "dbo.SP_Internal_*",
+    //   "Exclude": true
+    // },
+    // {
+    //   "Procedure": "dbo.SP_GetUsers",
+    //   "BaseName": "UsersQuery",
+    //   "MethodName": "GetUsersAsync"
+    // },
+    // {
+    //   // Force QuerySingle when the SP returns 0 or 1 row (metadata cannot infer this).
+    //   "Procedure": "dbo.SP_GetUserById",
+    //   "ExecutionPattern": "QuerySingle"
+    // }
+  ],
+}

@@ -87,6 +87,46 @@ public sealed class StoredProcedureExecutor : IStoredProcedureExecutor
     }
 
     /// <inheritdoc />
+    public async Task ExecuteAsync<TInput>(
+        string procedureName,
+        TInput input,
+        CancellationToken cancellationToken = default)
+        where TInput : class
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(procedureName);
+        ArgumentNullException.ThrowIfNull(input);
+
+        var sw = StartTiming(procedureName);
+
+        await using var lease = await _connectionProvider.AcquireAsync(cancellationToken);
+
+        await using var command = lease.Connection.CreateCommand();
+        command.CommandText = procedureName;
+        command.CommandType = CommandType.StoredProcedure;
+        command.Transaction = lease.Transaction;
+
+        var inputParams = _parameterBuilder.BuildInputParameters(input);
+
+        foreach (var p in inputParams)
+            command.Parameters.Add(p);
+
+        try
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogError(procedureName, sw, ex);
+            throw new SpExecutionException(
+                $"Failed to execute stored procedure '{procedureName}': {ex.Message}",
+                ex,
+                procedureName);
+        }
+
+        LogCompleted(procedureName, sw, rowCount: null);
+    }
+
+    /// <inheritdoc />
     public async Task<TOutput> ExecuteAsync<TInput, TOutput>(
         string procedureName,
         TInput input,

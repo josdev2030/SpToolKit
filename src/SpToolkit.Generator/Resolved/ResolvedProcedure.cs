@@ -13,6 +13,9 @@ public sealed class ResolvedProcedure
     /// <summary>Null when the SP has no output parameters.</summary>
     public required string? ResponseClassName { get; init; }
 
+    /// <summary>True when a response type is generated (output parameters present).</summary>
+    public bool RequiresResponseType => ResponseClassName is not null;
+
     /// <summary>Null when the SP has no inferrable result set.</summary>
     public required string? RowClassName { get; init; }
 

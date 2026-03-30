@@ -9,6 +9,17 @@ namespace SpToolkit.Abstractions.Contracts;
 public interface IStoredProcedureExecutor
 {
     /// <summary>
+    /// Executes a stored procedure that has no result set and no output parameters
+    /// (e.g. fire-and-forget DML). Binds only input parameters and runs <c>ExecuteNonQuery</c>.
+    /// When the procedure declares output parameters, use <see cref="ExecuteAsync{TInput,TOutput}"/> instead.
+    /// </summary>
+    Task ExecuteAsync<TInput>(
+        string procedureName,
+        TInput input,
+        CancellationToken cancellationToken = default)
+        where TInput : class;
+
+    /// <summary>
     /// Executes a stored procedure that has no result set (insert, update, delete).
     /// Reads output parameters and returns them as <typeparamref name="TOutput"/>.
     /// </summary>

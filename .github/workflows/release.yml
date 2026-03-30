@@ -82,6 +82,10 @@ jobs:
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
+          if [ -z "${NUGET_API_KEY}" ]; then
+            echo "NUGET_API_KEY not set; skipping NuGet push. Download packages from the workflow artifacts or push manually."
+            exit 0
+          fi
           dotnet nuget push "${{ github.workspace }}/artifacts"/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           shopt -s nullglob
           for f in "${{ github.workspace }}/artifacts"/*.snupkg; do

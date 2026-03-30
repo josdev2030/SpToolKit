@@ -26,4 +26,4 @@ jobs:
         run: dotnet build SpToolkit.slnx -c Release --no-restore /p:ContinuousIntegrationBuild=true
 
       - name: Test
-        run: dotnet test SpToolkit.slnx -c Release --no-build --verbosity normal
+        run: dotnet test SpToolkit.slnx -c Release --no-build --no-restore --verbosity normal

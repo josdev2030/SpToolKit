@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v[0-9]*"
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
@@ -32,14 +32,27 @@ jobs:
           dotnet-version: |
             10.0.x
 
-      - name: Resolve version
+      - name: Resolve and validate version
         id: ver
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             V="${{ inputs.version }}"
+            REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+            if [[ ! "$V" =~ $REGEX ]]; then
+              echo "Invalid manual version: $V"
+              echo "Expected SemVer core format: X.Y.Z (no leading v, no leading zeros)."
+              exit 1
+            fi
           else
-            V="${GITHUB_REF#refs/tags/v}"
+            TAG="${GITHUB_REF_NAME}"
+            REGEX='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+            if [[ ! "$TAG" =~ $REGEX ]]; then
+              echo "Invalid release tag: $TAG"
+              echo "Expected tag format: vX.Y.Z (no leading zeros)."
+              exit 1
+            fi
+            V="${TAG#v}"
           fi
           echo "version=${V}" >> "$GITHUB_OUTPUT"
           echo "Packaging version: ${V}"
@@ -51,7 +64,7 @@ jobs:
         run: dotnet build SpToolkit.slnx -c Release --no-restore -p:Version=${{ steps.ver.outputs.version }} -p:ContinuousIntegrationBuild=true
 
       - name: Test
-        run: dotnet test SpToolkit.slnx -c Release --no-build --verbosity normal
+        run: dotnet test SpToolkit.slnx -c Release --no-build --no-restore --verbosity normal
 
       - name: Pack
         run: |

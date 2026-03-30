@@ -4,7 +4,7 @@ This document describes versioning, Git branching, CI/CD, NuGet, and GitHub Rele
 
 ## Semantic versioning
 
-- Packages follow **SemVer**: `MAJOR.MINOR.PATCH`, with optional **pre-release** labels such as `1.0.0-preview.1`.
+- Packages follow **SemVer** release versions in `MAJOR.MINOR.PATCH` format (stable releases only for the current automation).
 - The default version in [Directory.Build.props](../Directory.Build.props) should be updated when you cut a release (or rely on CI to pass `-p:Version=…` from the Git tag).
 - **Git tags** for releases should use a leading `v` and match the package version without it, for example tag `v1.2.3` → package version `1.2.3`.
 
@@ -22,7 +22,7 @@ Enforcement (required reviewers, required status checks) is configured in **GitH
 
 - `Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion` (defaults aligned for `0.1.0`).
 
-Packable projects inherit these values unless overridden. Release automation passes `-p:Version=…` so the **tag** drives the shipped package version.
+Packable projects inherit these values unless overridden. Release automation passes `-p:Version=…` so the **tag** drives the shipped package version. `AssemblyVersion` and `FileVersion` are computed from `$(VersionPrefix)` (defaulting to `$(VersionPrefix).0` when not explicitly set), keeping assembly/file metadata aligned with the release version policy.
 
 ## Packable packages
 
@@ -57,7 +57,9 @@ Adjust `--version` to match the package version you packed.
 
 - **CI** (`.github/workflows/ci.yml`): on push/PR to `main`, runs `dotnet restore`, `dotnet build -c Release`, and `dotnet test` on `SpToolkit.slnx`.
 - **Release** (`.github/workflows/release.yml`):
-  - Runs when a tag matching `v*` is pushed, or when **Run workflow** is used (workflow dispatch).
+  - Runs when a tag matching `v*.*.*` is pushed, or when **Run workflow** is used (workflow dispatch).
+  - Validates release versions strictly as `vX.Y.Z` (tag push) or `X.Y.Z` (workflow dispatch), with no leading zeros.
+  - Pre-release tags/versions (for example `-preview.1`) are intentionally not accepted by this workflow.
   - Builds and tests in Release, packs the three packages, uploads **artifacts** (`.nupkg` and `.snupkg`).
   - **NuGet push**: configure the repository secret `NUGET_API_KEY`. On **tag** builds, if the secret is set, packages are pushed to nuget.org automatically; if unset, the job still succeeds and you push manually. For **workflow dispatch**, check **publish_nuget** to push (secret required).
 

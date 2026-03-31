@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Generator wrappers now use `EmptyRequest` as `TInput` for procedures without input parameters across `ExecuteOnly` and all `Query*` patterns, preventing compile-time mismatches when no request class is generated.
+
 ### Breaking
 
 ## [0.1.0-preview.2] - 2026-03-30

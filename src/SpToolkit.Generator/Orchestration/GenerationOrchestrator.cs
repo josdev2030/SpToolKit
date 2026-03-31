@@ -70,8 +70,8 @@ public sealed class GenerationOrchestrator
             if (proc.Warning is not null)
                 status = "Warning";
 
-            // Request -- always generated (even for no-input SPs, the class exists but is empty
-            // and the wrapper uses EmptyRequest.Instance directly)
+            // Request -- generated only when the SP has input parameters.
+            // For no-input SPs, no Request class is emitted; wrappers use EmptyRequest.Instance.
             if (proc.HasInputParameters)
             {
                 var requestFile = new GeneratedFile

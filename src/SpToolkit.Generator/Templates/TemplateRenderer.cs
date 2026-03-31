@@ -133,6 +133,10 @@ public sealed class TemplateRenderer
         var hasInput = proc.HasInputParameters;
         var ctParam  = "CancellationToken cancellationToken = default";
 
+        // When the SP has no input parameters the Request class is never generated,
+        // so the executor generic must use EmptyRequest instead of RequestClassName.
+        var effectiveRequestType = hasInput ? proc.RequestClassName : "EmptyRequest";
+
         string returnType;
         string executorCall;
 
@@ -146,34 +150,34 @@ public sealed class TemplateRenderer
                             $"Procedure '{proc.FullName}': ExecuteOnly with outputs requires ResponseClassName.");
 
                     returnType   = $"Task<{proc.ResponseClassName}>";
-                    executorCall = $"_executor.ExecuteAsync<{proc.RequestClassName}, {proc.ResponseClassName}>";
+                    executorCall = $"_executor.ExecuteAsync<{effectiveRequestType}, {proc.ResponseClassName}>";
                 }
                 else
                 {
                     returnType   = "Task";
-                    executorCall = $"_executor.ExecuteAsync<{proc.RequestClassName}>";
+                    executorCall = $"_executor.ExecuteAsync<{effectiveRequestType}>";
                 }
 
                 break;
 
             case ExecutionPattern.Query:
                 returnType   = $"Task<IReadOnlyList<{proc.RowClassName}>>";
-                executorCall = $"_executor.QueryAsync<{proc.RequestClassName}, {proc.RowClassName}>";
+                executorCall = $"_executor.QueryAsync<{effectiveRequestType}, {proc.RowClassName}>";
                 break;
 
             case ExecutionPattern.QuerySingle:
                 returnType   = $"Task<{proc.RowClassName}?>";
-                executorCall = $"_executor.QuerySingleAsync<{proc.RequestClassName}, {proc.RowClassName}>";
+                executorCall = $"_executor.QuerySingleAsync<{effectiveRequestType}, {proc.RowClassName}>";
                 break;
 
             case ExecutionPattern.QueryWithOutputs:
                 returnType   = $"Task<SpResult<IReadOnlyList<{proc.RowClassName}>, {proc.ResponseClassName}>>";
-                executorCall = $"_executor.QueryWithOutputsAsync<{proc.RequestClassName}, {proc.RowClassName}, {proc.ResponseClassName}>";
+                executorCall = $"_executor.QueryWithOutputsAsync<{effectiveRequestType}, {proc.RowClassName}, {proc.ResponseClassName}>";
                 break;
 
             case ExecutionPattern.QuerySingleWithOutputs:
                 returnType   = $"Task<SpResult<{proc.RowClassName}?, {proc.ResponseClassName}>>";
-                executorCall = $"_executor.QuerySingleWithOutputsAsync<{proc.RequestClassName}, {proc.RowClassName}, {proc.ResponseClassName}>";
+                executorCall = $"_executor.QuerySingleWithOutputsAsync<{effectiveRequestType}, {proc.RowClassName}, {proc.ResponseClassName}>";
                 break;
 
             default:

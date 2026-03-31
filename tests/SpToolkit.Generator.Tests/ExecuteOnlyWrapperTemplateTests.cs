@@ -97,4 +97,58 @@ public sealed class ExecuteOnlyWrapperTemplateTests
         Assert.Contains("_executor.ExecuteAsync<AcmeRequest, AcmeResponse>", code, StringComparison.Ordinal);
         Assert.DoesNotContain("_executor.ExecuteAsync<AcmeRequest>(", code, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RenderWrapper_ExecuteOnly_without_inputs_uses_EmptyRequest_even_if_RequestClassName_differs()
+    {
+        // Orchestrator always sets RequestClassName = baseName + "Request".
+        // When HasInputParameters is false the renderer must use EmptyRequest as the generic type.
+        var proc = new ResolvedProcedure
+        {
+            FullName           = "dbo.SP_Acme",
+            BaseName           = "Acme",
+            RequestClassName   = "AcmeRequest",   // NOT "EmptyRequest"
+            ResponseClassName  = null,
+            RowClassName       = null,
+            MethodName         = "RunAsync",
+            Pattern            = ExecutionPattern.ExecuteOnly,
+            InputParameters    = [],
+            OutputParameters   = [],
+            ResultColumns      = null,
+            HasInputParameters = false,
+        };
+
+        var renderer = new TemplateRenderer();
+        var code     = renderer.RenderWrapper("TestNs", "AppSp", [proc]);
+
+        Assert.Contains("_executor.ExecuteAsync<EmptyRequest>(", code, StringComparison.Ordinal);
+        Assert.Contains("EmptyRequest.Instance", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("AcmeRequest", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderWrapper_ExecuteOnly_without_inputs_with_outputs_uses_EmptyRequest_even_if_RequestClassName_differs()
+    {
+        var proc = new ResolvedProcedure
+        {
+            FullName           = "dbo.SP_Acme",
+            BaseName           = "Acme",
+            RequestClassName   = "AcmeRequest",   // NOT "EmptyRequest"
+            ResponseClassName  = "AcmeResponse",
+            RowClassName       = null,
+            MethodName         = "RunAsync",
+            Pattern            = ExecutionPattern.ExecuteOnly,
+            InputParameters    = [],
+            OutputParameters   = [SampleOutputParam()],
+            ResultColumns      = null,
+            HasInputParameters = false,
+        };
+
+        var renderer = new TemplateRenderer();
+        var code     = renderer.RenderWrapper("TestNs", "AppSp", [proc]);
+
+        Assert.Contains("_executor.ExecuteAsync<EmptyRequest, AcmeResponse>", code, StringComparison.Ordinal);
+        Assert.Contains("EmptyRequest.Instance", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("AcmeRequest", code, StringComparison.Ordinal);
+    }
 }

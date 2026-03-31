@@ -14,11 +14,11 @@ using SpToolkit.Runtime.TypeConversion;
 namespace SpToolkit.Runtime.Execution;
 
 /// <summary>
-/// Implements IStoredProcedureExecutor using ADO.NET and SqlClient.
+/// Implements <see cref="IStoredProcedureExecutor"/> using ADO.NET and SqlClient.
 /// Supports three connection modes:
-///   A -- connection string in SpToolkitOptions (executor owns the connection)
-///   B -- caller-provided DbConnection (caller owns the connection)
-///   C -- EF Core DbContext (DbContext owns the connection)
+///   Mode A — connection string in <see cref="SpToolkitOptions"/> (executor owns the connection)
+///   Mode B — caller-provided <see cref="System.Data.Common.DbConnection"/> (caller owns the connection)
+///   Mode C — EF Core <see cref="Microsoft.EntityFrameworkCore.DbContext"/> (DbContext owns the connection)
 /// </summary>
 public sealed class StoredProcedureExecutor : IStoredProcedureExecutor
 {
@@ -29,7 +29,7 @@ public sealed class StoredProcedureExecutor : IStoredProcedureExecutor
     private readonly ILogger<StoredProcedureExecutor>? _logger;
 
     /// <summary>
-    /// Modo A: the executor creates and manages its own SqlConnection
+    /// Mode A: the executor creates and manages its own SqlConnection
     /// using the connection string from <paramref name="options"/>.
     /// </summary>
     public StoredProcedureExecutor(SpToolkitOptions options, ILogger<StoredProcedureExecutor>? logger = null)
@@ -51,7 +51,7 @@ public sealed class StoredProcedureExecutor : IStoredProcedureExecutor
     }
 
     /// <summary>
-    /// Modo B: the executor reuses a caller-provided DbConnection (and optional transaction).
+    /// Mode B: the executor reuses a caller-provided DbConnection (and optional transaction).
     /// The caller is responsible for opening the connection and managing its lifetime.
     /// </summary>
     public StoredProcedureExecutor(SpToolkitOptions options, DbConnection connection, DbTransaction? transaction = null, ILogger<StoredProcedureExecutor>? logger = null)
@@ -69,7 +69,7 @@ public sealed class StoredProcedureExecutor : IStoredProcedureExecutor
     }
 
     /// <summary>
-    /// Modo C: the executor extracts the connection and active transaction from an EF Core DbContext.
+    /// Mode C: the executor extracts the connection and active transaction from an EF Core DbContext.
     /// The DbContext owns the connection lifetime.
     /// </summary>
     public StoredProcedureExecutor(SpToolkitOptions options, DbContext dbContext, ILogger<StoredProcedureExecutor>? logger = null)

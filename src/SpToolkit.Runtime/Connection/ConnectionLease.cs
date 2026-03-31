@@ -4,8 +4,8 @@ namespace SpToolkit.Runtime.Connection;
 
 /// <summary>
 /// Wraps a DbConnection for a single stored procedure execution.
-/// Closes and disposes the connection only when the Runtime owns it (Modo A).
-/// When the caller supplies an external connection (Modo B), the connection is left untouched.
+/// Closes and disposes the connection only when the Runtime owns it (Mode A).
+/// When the caller supplies an external connection (Mode B), the connection is left untouched.
 /// </summary>
 internal sealed class ConnectionLease : IAsyncDisposable
 {

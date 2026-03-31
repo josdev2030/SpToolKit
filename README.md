@@ -18,12 +18,12 @@ Published package IDs (see [docs/PUBLISHING.md](docs/PUBLISHING.md) for versioni
 | `SpToolkit.Runtime` | `IStoredProcedureExecutor`, `StoredProcedureExecutor`, `AddSpToolkit` |
 | `SpToolkit.Generator.Cli` | .NET **global tool**; command: `sp-generate` |
 
-**Current published version (prerelease on nuget.org): `0.1.0-preview.2`**
+**Current published version (prerelease on nuget.org): `0.1.0-preview.3`**
 
 ```bash
-dotnet add package SpToolkit.Abstractions --version 0.1.0-preview.2
-dotnet add package SpToolkit.Runtime --version 0.1.0-preview.2
-dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0-preview.2
+dotnet add package SpToolkit.Abstractions --version 0.1.0-preview.3
+dotnet add package SpToolkit.Runtime --version 0.1.0-preview.3
+dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0-preview.3
 ```
 
 `dotnet add package` resolves prerelease versions when you pass the full `--version` string. For the tool, if you omit `--version` and want the latest prerelease, add `--prerelease`.

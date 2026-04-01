@@ -12,6 +12,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Breaking
 
+## [0.1.0] - 2026-03-31
+
+First stable (non-preview) release. All packages are production-ready on [nuget.org](https://www.nuget.org/profiles/josuenavarro).
+
+### Added
+
+- Comprehensive unit tests for `TypeConversionService` (null/enum/DateOnly/TimeOnly/nullable paths), `MetadataCache` (Attribute and Convention naming modes, caching, `[SpIgnore]` exclusions), and `RowMaterializer` (case-insensitive column matching, missing-column behavior, ordinal-position mapping, `DBNull` handling).
+- `FakeDbDataReader` test double in `SpToolkit.Runtime.Tests` to enable in-memory materialisation tests without a real database connection.
+- Full XML documentation on all public exception types (`SpToolkitException`, `SpExecutionException`, `SpMappingException`, `SpGenerationException`) and on `SpResult<TData,TOutput>` properties.
+
+### Changed
+
+- Connection provider summary comments updated from Spanish ("Modo A/B/C") to English ("Mode A/B/C") throughout `ConnectionLease`, `ConnectionStringProvider`, `ExternalConnectionProvider`, `DbContextConnectionProvider`, and `StoredProcedureExecutor`.
+
+### Breaking
+
 ## [0.1.0-preview.3] - 2026-03-31
 
 ### Added

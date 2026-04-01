@@ -13,6 +13,11 @@ internal sealed class RecordingDbConnection : DbConnection
 {
     public RecordingDbCommand? LastCommand { get; private set; }
 
+    /// <summary>
+    /// When set, the next command created will use this reader instead of throwing for ExecuteReaderAsync.
+    /// </summary>
+    public FakeDbDataReader? NextReader { get; set; }
+
     public override string ConnectionString { get; set; } = "";
 
     public override string Database => "";
@@ -48,6 +53,7 @@ internal sealed class RecordingDbCommand : DbCommand
     public RecordingDbCommand(RecordingDbConnection connection) => _connection = connection;
 
     public int ExecuteNonQueryCallCount { get; private set; }
+    public int ExecuteReaderCallCount { get; private set; }
 
     public override string CommandText { get; set; } = "";
 
@@ -92,6 +98,15 @@ internal sealed class RecordingDbCommand : DbCommand
         _parameters.SimulatePostExecuteOutputValues();
         ExecuteNonQueryCallCount++;
         return 0;
+    }
+
+    protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(
+        CommandBehavior behavior, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
+        ExecuteReaderCallCount++;
+        _parameters.SimulatePostExecuteOutputValues();
+        return _connection.NextReader ?? new FakeDbDataReader([], []);
     }
 }
 
@@ -197,6 +212,78 @@ internal sealed class ListDbParameterCollection : DbParameterCollection
         else
             Add(value);
     }
+}
+
+/// <summary>
+/// An in-memory <see cref="DbDataReader"/> for testing materialisation logic without a real database.
+/// Construct with column names and a list of rows (each row is an array of values aligned to the columns).
+/// </summary>
+internal sealed class FakeDbDataReader : DbDataReader
+{
+    private readonly string[] _columns;
+    private readonly object?[][] _rows;
+    private int _currentRow = -1;
+
+    public FakeDbDataReader(string[] columns, object?[][] rows)
+    {
+        _columns = columns;
+        _rows = rows;
+    }
+
+    public override int FieldCount => _columns.Length;
+    public override bool HasRows => _rows.Length > 0;
+    public override bool IsClosed => false;
+    public override int RecordsAffected => -1;
+    public override int Depth => 0;
+
+    public override bool Read()
+    {
+        _currentRow++;
+        return _currentRow < _rows.Length;
+    }
+
+    public override Task<bool> ReadAsync(CancellationToken cancellationToken)
+        => Task.FromResult(Read());
+
+    public override string GetName(int ordinal) => _columns[ordinal];
+
+    public override int GetOrdinal(string name)
+    {
+        for (int i = 0; i < _columns.Length; i++)
+            if (string.Equals(_columns[i], name, StringComparison.OrdinalIgnoreCase))
+                return i;
+        return -1;
+    }
+
+    public override object GetValue(int ordinal)
+        => _rows[_currentRow][ordinal] ?? DBNull.Value;
+
+    public override bool IsDBNull(int ordinal)
+        => _rows[_currentRow][ordinal] is null or DBNull;
+
+    // ── Unused abstract members ────────────────────────────────────────────────
+    public override bool GetBoolean(int ordinal) => (bool)GetValue(ordinal);
+    public override byte GetByte(int ordinal) => (byte)GetValue(ordinal);
+    public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotSupportedException();
+    public override char GetChar(int ordinal) => (char)GetValue(ordinal);
+    public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotSupportedException();
+    public override string GetDataTypeName(int ordinal) => GetValue(ordinal).GetType().Name;
+    public override DateTime GetDateTime(int ordinal) => (DateTime)GetValue(ordinal);
+    public override decimal GetDecimal(int ordinal) => (decimal)GetValue(ordinal);
+    public override double GetDouble(int ordinal) => (double)GetValue(ordinal);
+    public override Type GetFieldType(int ordinal) => GetValue(ordinal).GetType();
+    public override float GetFloat(int ordinal) => (float)GetValue(ordinal);
+    public override Guid GetGuid(int ordinal) => (Guid)GetValue(ordinal);
+    public override short GetInt16(int ordinal) => (short)GetValue(ordinal);
+    public override int GetInt32(int ordinal) => (int)GetValue(ordinal);
+    public override long GetInt64(int ordinal) => (long)GetValue(ordinal);
+    public override string GetString(int ordinal) => (string)GetValue(ordinal);
+    public override int GetValues(object[] values) { for (int i = 0; i < _columns.Length; i++) values[i] = GetValue(i); return _columns.Length; }
+    public override object this[int ordinal] => GetValue(ordinal);
+    public override object this[string name] => GetValue(GetOrdinal(name));
+    public override IEnumerator GetEnumerator() => throw new NotSupportedException();
+    public override bool NextResult() => false;
+    public override Task<bool> NextResultAsync(CancellationToken cancellationToken) => Task.FromResult(false);
 }
 
 #pragma warning restore CS8765

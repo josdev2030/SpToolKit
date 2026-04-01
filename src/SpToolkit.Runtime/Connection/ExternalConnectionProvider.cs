@@ -3,7 +3,7 @@ using System.Data.Common;
 namespace SpToolkit.Runtime.Connection;
 
 /// <summary>
-/// Modo B: wraps a caller-owned DbConnection (and optional transaction).
+/// Mode B: wraps a caller-owned DbConnection (and optional transaction).
 /// Does not open, close, or dispose the connection.
 /// The caller is responsible for ensuring the connection is open before executing.
 /// </summary>

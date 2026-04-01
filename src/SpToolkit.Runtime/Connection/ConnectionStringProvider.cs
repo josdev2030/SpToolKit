@@ -4,7 +4,7 @@ using SpToolkit.Abstractions.Exceptions;
 namespace SpToolkit.Runtime.Connection;
 
 /// <summary>
-/// Modo A: creates a new SqlConnection for each execution and owns its lifetime.
+/// Mode A: creates a new SqlConnection for each execution and owns its lifetime.
 /// </summary>
 internal sealed class ConnectionStringProvider : IConnectionProvider
 {

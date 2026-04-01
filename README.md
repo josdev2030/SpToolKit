@@ -18,19 +18,15 @@ Published package IDs (see [docs/PUBLISHING.md](docs/PUBLISHING.md) for versioni
 | `SpToolkit.Runtime` | `IStoredProcedureExecutor`, `StoredProcedureExecutor`, `AddSpToolkit` |
 | `SpToolkit.Generator.Cli` | .NET **global tool**; command: `sp-generate` |
 
-**Current published version (prerelease on nuget.org): `0.1.0-preview.3`**
+**Current published version (stable): `0.1.0`**
 
 ```bash
-dotnet add package SpToolkit.Abstractions --version 0.1.0-preview.3
-dotnet add package SpToolkit.Runtime --version 0.1.0-preview.3
-dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0-preview.3
+dotnet add package SpToolkit.Abstractions --version 0.1.0
+dotnet add package SpToolkit.Runtime --version 0.1.0
+dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0
 ```
 
-`dotnet add package` resolves prerelease versions when you pass the full `--version` string. For the tool, if you omit `--version` and want the latest prerelease, add `--prerelease`.
-
-Stable **`0.1.0`** (without `-preview`) is not published yet; when it is, pin that version the same way (no `--prerelease` needed when the version is explicit).
-
-For **local packs** or a private feed, use **project references** or `--add-source` as in [docs/PUBLISHING.md](docs/PUBLISHING.md).
+`dotnet add package` resolves stable versions automatically. For prerelease versions, add `--prerelease` or pass the explicit `--version` string.
 
 **Project reference**  
 Add references to the library projects you need, for example:
@@ -54,10 +50,9 @@ Adjust the paths to match where you cloned or vendored the repository. Code gene
 1. Update **CHANGELOG** (move items from `[Unreleased]` into the new version section).
 2. Bump **`Version`** in [Directory.Build.props](Directory.Build.props) (or rely on CI `-p:Version=…` from the tag).
 3. Push **`main`** and confirm the **CI** workflow is green.
-4. Create an annotated **Git tag** that matches the package version, e.g. `v0.1.0-preview.2` or `v0.1.0` for stable:  
-   `git tag -a v0.1.0-preview.2 -m "v0.1.0-preview.2" && git push origin v0.1.0-preview.2`
+4. Create an annotated **Git tag** that matches the package version, e.g. `v0.1.0` or `v1.0.0`:  
+   `git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0`
 5. Open a **GitHub Release** from that tag; paste the matching **CHANGELOG** section as the release notes (see [docs/PUBLISHING.md](docs/PUBLISHING.md)).
-6. For **stable** `0.1.0`, publish packages without a prerelease label and tag **`v0.1.0`**, following the same steps.
 
 ## Quick Start
 

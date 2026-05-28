@@ -1,90 +1,181 @@
 # SpToolKit
 
-SpToolKit generates strongly-typed C# wrappers around SQL Server stored procedures and provides a small runtime to execute them. You maintain a JSON configuration, run a CLI against your database to emit `.g.cs` files, and inject `IStoredProcedureExecutor` where generated classes call into the database. The abstractions stay separate from the ADO.NET/EF Core implementation so you can keep generated code stable while swapping execution details.
+SpToolKit generates strongly-typed C# wrappers around SQL Server stored procedures. You point the CLI tool at your database, it reads the procedure metadata, and emits `.g.cs` files with request, response, and row classes ready to use. At runtime, inject `IStoredProcedureExecutor` and call the generated methods — no raw ADO.NET in your application code.
+
+## How it works
+
+```
+SQL Server stored procedures
+        │
+        ▼
+  sp-generate (CLI)          ← reads metadata from your database
+        │
+        ▼
+  Generated .g.cs files      ← request/response/row classes + wrapper
+        │
+        ▼
+  Your application code      ← call wrapper methods via IStoredProcedureExecutor
+```
 
 ## Requirements
 
-- **.NET 10** (target framework for this repository’s projects)
-- **SQL Server** (metadata and execution are oriented toward T-SQL stored procedures)
+- **.NET 10** (all packages target `net10.0`)
+- **SQL Server** (metadata and execution are T-SQL specific)
 
 ## Installation
 
-**NuGet**  
-Published package IDs (see [docs/PUBLISHING.md](docs/PUBLISHING.md) for versioning, CI, and first-time publish):
-
-| Package | Purpose |
-|---------|---------|
-| `SpToolkit.Abstractions` | Contracts and models used by generated code |
-| `SpToolkit.Runtime` | `IStoredProcedureExecutor`, `StoredProcedureExecutor`, `AddSpToolkit` |
-| `SpToolkit.Generator.Cli` | .NET **global tool**; command: `sp-generate` |
-
-**Current published version (stable): `0.1.0`**
+Install the runtime packages into your application project:
 
 ```bash
 dotnet add package SpToolkit.Abstractions --version 0.1.0
-dotnet add package SpToolkit.Runtime --version 0.1.0
+dotnet add package SpToolkit.Runtime      --version 0.1.0
+```
+
+Install the CLI tool globally to generate code from your database:
+
+```bash
 dotnet tool install --global SpToolkit.Generator.Cli --version 0.1.0
 ```
 
-`dotnet add package` resolves stable versions automatically. For prerelease versions, add `--prerelease` or pass the explicit `--version` string.
+| Package | What it contains | Who needs it |
+|---------|-----------------|--------------|
+| `SpToolkit.Abstractions` | Attributes, contracts, models used by generated code | Your application project |
+| `SpToolkit.Runtime` | `StoredProcedureExecutor`, `AddSpToolkit` DI extension | Your application project |
+| `SpToolkit.Generator.Cli` | `sp-generate` global tool | Developer machine / CI |
 
-**Project reference**  
-Add references to the library projects you need, for example:
+> For prerelease versions add `--prerelease` or pass the explicit `--version` string.
 
-```xml
-<ItemGroup>
-  <ProjectReference Include="..\SpToolKit\src\SpToolkit.Abstractions\SpToolkit.Abstractions.csproj" />
-  <ProjectReference Include="..\SpToolKit\src\SpToolkit.Runtime\SpToolkit.Runtime.csproj" />
-</ItemGroup>
+## Getting Started
+
+### 1. Create the configuration file
+
+Copy the [example config](sptoolkit.example.jsonc) to `sptoolkit.json` in your project root and fill in the three required fields:
+
+```jsonc
+{
+  "ConnectionString": "Server=localhost;Database=MyDb;User Id=...;Password=...;TrustServerCertificate=True",
+  "Namespace":        "MyProject.Data.StoredProcedures",
+  "OutputDirectory":  "Generated/StoredProcedures"
+}
 ```
 
-Adjust the paths to match where you cloned or vendored the repository. Code generation is `SpToolkit.Generator.Cli`; run it from source with `dotnet run` (see Quick Start) or install the `SpToolkit.Generator.Cli` global tool from NuGet or a local pack.
+See [Configuration options](#configuration-options) for the full list of settings.
 
-## Documentation
+### 2. Run the generator
 
-- [CHANGELOG.md](CHANGELOG.md) — release notes
-- [docs/PUBLISHING.md](docs/PUBLISHING.md) — branches, tags, packing, GitHub Actions, NuGet, releases
+```bash
+sp-generate --config sptoolkit.json
+```
 
-## Release discipline (summary)
+The tool connects to your database, reads stored procedure signatures, and writes `.g.cs` files to `OutputDirectory`. Use `--dry-run` to preview the resolved configuration without touching your database or disk.
 
-1. Update **CHANGELOG** (move items from `[Unreleased]` into the new version section).
-2. Bump **`Version`** in [Directory.Build.props](Directory.Build.props) (or rely on CI `-p:Version=…` from the tag).
-3. Push **`main`** and confirm the **CI** workflow is green.
-4. Create an annotated **Git tag** that matches the package version, e.g. `v0.1.0` or `v1.0.0`:  
-   `git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0`
-5. Open a **GitHub Release** from that tag; paste the matching **CHANGELOG** section as the release notes (see [docs/PUBLISHING.md](docs/PUBLISHING.md)).
+**What gets generated** — for a procedure `dbo.SP_GET_USERS` you get:
 
-## Quick Start
+```
+Generated/StoredProcedures/
+  GetUsersRequest.g.cs      ← input parameters
+  UserRow.g.cs              ← result set columns
+  AppStoredProcedures.g.cs  ← wrapper class with GetUsersAsync method
+```
 
-1. **Create or edit the config file**  
-   Add a `sptoolkit.json` (or copy from the example below) with at least connection string, output directory, and namespace—or plan to pass those via CLI flags (`--connection`, `--output`, `--namespace`).
+### 3. Register in DI
 
-2. **Run the generator CLI**  
-   From the repository root (or with paths adjusted), for example:
+In your application startup:
 
-   ```bash
-   dotnet run --project src/SpToolkit.Generator.Cli/SpToolkit.Generator.Cli.csproj -- --config sptoolkit.json
-   ```
+```csharp
+// Option A: own connection string
+services.AddSpToolkit(opts =>
+{
+    opts.ConnectionString = configuration.GetConnectionString("Default");
+});
 
-   Use `--dry-run` to print the resolved configuration without writing files. When the `SpToolkit.Generator.Cli` tool is installed, the entry point is `sp-generate`.
+// Option B: reuse an existing EF Core DbContext connection
+services.AddDbContext<AppDbContext>(...);
+services.AddSpToolkit<AppDbContext>();
+```
 
-3. **Register the executor in DI**  
-   In your application startup, call `AddSpToolkit` (or `AddSpToolkit<TDbContext>` when reusing an EF Core context). That registers `IStoredProcedureExecutor` for use by generated wrapper types.
+### 4. Call generated methods
 
-   ```csharp
-   services.AddSpToolkit(opts =>
-   {
-       opts.ConnectionString = configuration.GetConnectionString("Default");
-   });
-   ```
+Inject the generated wrapper (or `IStoredProcedureExecutor` directly) and call the methods:
 
-## Configuration example
+```csharp
+public class UserService
+{
+    private readonly IStoredProcedureExecutor _sp;
 
-A commented template with all supported options is in the repository:
+    public UserService(IStoredProcedureExecutor sp) => _sp = sp;
 
-[sptoolkit.example.jsonc](sptoolkit.example.jsonc)
+    // Query a result set
+    public async Task<IReadOnlyList<UserRow>> GetUsersAsync(int maxRows)
+        => await _sp.QueryAsync<GetUsersRequest, UserRow>(
+               "dbo.SP_GET_USERS",
+               new GetUsersRequest { MaxRows = maxRows });
 
-Copy it to `sptoolkit.json` (or another path and pass `--config` / `-c`), then fill in values for your environment.
+    // Execute with output parameters
+    public async Task<CreateUserResponse> CreateUserAsync(string name, string email)
+        => await _sp.ExecuteAsync<CreateUserRequest, CreateUserResponse>(
+               "dbo.SP_CREATE_USER",
+               new CreateUserRequest { Name = name, Email = email });
+}
+```
+
+## Execution patterns
+
+The generator picks the right method based on what the stored procedure returns. You can also force a pattern per-procedure in `Overrides`.
+
+| Pattern | Method | Use when |
+|---------|--------|----------|
+| Execute only | `ExecuteAsync<TInput>()` | No result set, no output parameters |
+| Execute with outputs | `ExecuteAsync<TInput, TOutput>()` | No result set, has output parameters |
+| Query | `QueryAsync<TInput, TRow>()` | Returns a result set, no output parameters |
+| Query single | `QuerySingleAsync<TInput, TRow>()` | Returns 0 or 1 row, no output parameters |
+| Query with outputs | `QueryWithOutputsAsync<TInput, TRow, TOutput>()` | Result set + output parameters |
+| Query single with outputs | `QuerySingleWithOutputsAsync<TInput, TRow, TOutput>()` | 0 or 1 row + output parameters |
+
+`QuerySingle` variants return `TRow?` (null when the SP returns no rows).  
+`WithOutputs` variants return `SpResult<TData, TOutput>` with `.Data` and `.Output` properties.
+
+## Configuration options
+
+All options for `sptoolkit.json` with inline documentation are in the example template:
+
+**[sptoolkit.example.jsonc](sptoolkit.example.jsonc)**
+
+Quick reference:
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `ConnectionString` | Yes* | — | SQL Server connection string |
+| `Namespace` | Yes* | — | Namespace for generated classes |
+| `OutputDirectory` | Yes* | — | Folder where `.g.cs` files are written |
+| `Schemas` | No | `["dbo"]` | SQL schemas to inspect |
+| `PrefixesToRemove` | No | `["SP_", "USP_"]` | Name prefixes stripped when deriving C# identifiers |
+| `ExcludeProcedures` | No | `[]` | Procedure names to skip |
+| `WrapperClassName` | No | `"AppStoredProcedures"` | Name of the generated wrapper class |
+| `CaseSensitiveColumns` | No | `false` | Case-sensitive column name matching at runtime |
+| `Overrides` | No | `[]` | Per-procedure rules: exclude, rename, manual columns, force pattern |
+
+*Required unless the equivalent CLI flag is passed (`--connection`, `--namespace`, `--output`).
+
+CLI flags take precedence over the config file:
+
+```bash
+sp-generate --config sptoolkit.json --connection "Server=...;" --output ./Generated
+```
+
+### Handling dynamic SQL
+
+When `sp_describe_first_result_set` cannot infer columns (e.g. dynamic SQL), declare them manually in `Overrides`:
+
+```jsonc
+"Overrides": [
+  {
+    "Procedure": "dbo.SP_DynamicReport",
+    "ResultColumns": ["UserId:int", "DisplayName:string", "Amount:decimal?"]
+  }
+]
+```
 
 ## License
+
 See [LICENSE](LICENSE).

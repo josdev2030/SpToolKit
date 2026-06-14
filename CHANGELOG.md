@@ -12,6 +12,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Breaking
 
+## [0.1.1] - 2026-06-14
+
+### Changed
+
+- Updated README for clarity and usability (NuGet package documentation).
+
 ## [0.1.0] - 2026-03-31
 
 First stable (non-preview) release. All packages are production-ready on [nuget.org](https://www.nuget.org/profiles/josuenavarro).
